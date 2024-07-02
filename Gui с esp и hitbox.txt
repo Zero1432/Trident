@@ -1,0 +1,113 @@
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/NiceBBMBThai12/NBTScript/main/UI-Library-Robloxx"))()
+local window = library:Win()
+
+local tap1 = window:addtap("Legit")
+local page1 = tap1:addpage()
+local page2 = tap1:addpage()
+page1:Ti("ESP Control")
+page2:Ti("Hitbox Control")
+
+
+local BoxESP = {}
+local isESPEnabled = false
+local HitboxSize = 5
+local OriginalHeadSize = Vector3.new(1.672248125076294, 0.835624098777771, 0.835624098777771)
+local On = false
+local Boxes = {}
+
+function BoxESP.Create(Player)
+local Box = Drawing.new("Square")
+Box.Visible = false
+Box.Color = Color3.fromRGB(194, 17, 17)
+Box.Filled = false
+Box.Transparency = 0.50
+Box.Thickness = 3
+
+local function UpdateBox()
+if Player and Player:IsA("Model") and Player:FindFirstChild("HumanoidRootPart") and Player:FindFirstChild("Head") then
+local Target2dPosition, IsVisible = workspace.CurrentCamera:WorldToViewportPoint(Player.HumanoidRootPart.Position)
+local scale_factor = 1 / (Target2dPosition.Z * math.tan(math.rad(workspace.CurrentCamera.FieldOfView * 0.5)) * 2) * 100
+local width, height = math.floor(40 * scale_factor), math.floor(62 * scale_factor)
+
+Box.Visible = IsVisible and isESPEnabled
+Box.Size = Vector2.new(width, height)
+Box.Position = Vector2.new(Target2dPosition.X - Box.Size.X / 2, Target2dPosition.Y - Box.Size.Y / 2)
+else
+Box.Visible = false
+if not Player then
+Box:Remove()
+updater:Disconnect()
+end
+end
+end
+
+local updater = game:GetService("RunService").RenderStepped:Connect(UpdateBox)
+table.insert(Boxes, Box)
+return Box
+end
+
+
+local function UpdateHeadSizes()
+for i, v in pairs(game:GetService("Workspace"):GetChildren()) do
+if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Head") then
+local hasFakeHead = v:FindFirstChild("FakeHead")
+
+if On then
+if not hasFakeHead then
+local FakeHead = v.Head:Clone()
+FakeHead.Name = "FakeHead"
+FakeHead.Parent = v
+FakeHead.Transparency = 0
+FakeHead.Rotation = v.Head.Rotation
+end
+
+v.Head.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+v.Head.Transparency = 0.7
+v.Head.CanCollide = false
+v.Head.Nametag.Enabled = false
+else
+if hasFakeHead then
+v.FakeHead:Destroy()
+end
+
+v.Head.Size = OriginalHeadSize
+v.Head.Nametag.Enabled = true
+v.Head.Transparency = 0
+end
+end
+end
+end
+
+
+local function EnableBoxESP()
+for _, Player in pairs(game:GetService("Workspace"):GetChildren()) do
+if Player:IsA("Model") and Player:FindFirstChild("HumanoidRootPart") and Player:FindFirstChild("Head") then
+BoxESP.Create(Player)
+end
+end
+
+game:GetService("Workspace").DescendantAdded:Connect(function(i)
+if i:IsA("Model") and i:FindFirstChild("HumanoidRootPart") and i:FindFirstChild("Head") then
+BoxESP.Create(i)
+end
+end)
+end
+
+EnableBoxESP()
+
+
+page1:Toggle("Enable ESP", nil, function(value)
+isESPEnabled = value
+print("BoxESP " .. (isESPEnabled and "Enabled" or "Disabled"))
+end)
+
+page2:Toggle("Enable Hitbox Expander", nil, function(value)
+On = value
+UpdateHeadSizes()
+end)
+
+
+page2:Slder("Hitbox Size", 1, 10, HitboxSize, function(value)
+HitboxSize = value
+UpdateHeadSizes()
+end)
